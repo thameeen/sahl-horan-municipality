@@ -1,119 +1,102 @@
-# Miscellaneous
-*.class
-*.lock
-*.log
-*.pyc
-*.swp
-.buildlog/
-.history
+<template>
+  <UApp
+    class="isolate"
+    :toaster="toasterConfig"
+    :locale="uiLocale"
+  >
+    <SkipNavigation
+      v-if="!isDashboard && !isAdmin && !isEmbed && !isFastmap"
+    />
 
+    <DemoBanner />
 
+    <SystemNoticeBanner v-if="!isEmbed" />
 
-# Flutter repo-specific
-/bin/cache/
-/bin/internal/bootstrap.bat
-/bin/internal/bootstrap.sh
-/bin/mingit/
-/dev/benchmarks/mega_gallery/
-/dev/bots/.recipe_deps
-/dev/bots/android_tools/
-/dev/devicelab/ABresults*.json
-/dev/docs/doc/
-/dev/docs/flutter.docs.zip
-/dev/docs/lib/
-/dev/docs/pubspec.yaml
-/dev/integration_tests/**/xcuserdata
-/dev/integration_tests/**/Pods
-/packages/flutter/coverage/
-version
-analysis_benchmark.json
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
 
-# packages file containing multi-root paths
-.packages.generated
+    <aside
+      v-if="!isDashboard && !isAdmin && !isEmbed && !isFastmap"
+      aria-label="ميزات التطبيق"
+    >
+      <OfflineBanner />
+      <PWAInstallPrompt />
+      <ServiceUnavailableOverlay />
+      <EmergencyBannerToast />
+    </aside>
 
-# Flutter/Dart/Pub related
-**/doc/api/
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-**/generated_plugin_registrant.dart
-.packages
-.pub-preload-cache/
-.pub/
-build/
-flutter_*.png
-linked_*.ds
-unlinked.ds
-unlinked_spec.ds
+    <DemoSubmitConfirmModal />
+  </UApp>
+</template>
 
-# Android related
-**/android/**/gradle-wrapper.jar
-.gradle/
-**/android/captures/
-**/android/gradlew
-**/android/gradlew.bat
-**/android/local.properties
-**/android/**/GeneratedPluginRegistrant.java
-**/android/key.properties
-*.jks
+<script setup lang="ts">
+import useAppBootstrap from '~/composables/useAppBootstrap';
+import { useMarkASpotConfig } from '~/composables/core/useMarkASpotConfig';
+import { useDemoMode } from '~/composables/core/useDemoMode';
+import { SUPPORTED_LOCALES } from '~~/config/locales';
+import { resolveLocaleDir } from '~/utils/locale';
+import { ar } from '@nuxt/ui/locale';
 
-# iOS/XCode related
-**/ios/**/*.mode1v3
-**/ios/**/*.mode2v3
-**/ios/**/*.moved-aside
-**/ios/**/*.pbxuser
-**/ios/**/*.perspectivev3
-**/ios/**/*sync/
-**/ios/**/.sconsign.dblite
-**/ios/**/.tags*
-**/ios/**/.vagrant/
-**/ios/**/DerivedData/
-**/ios/**/Icon?
-**/ios/**/Pods/
-**/ios/**/.symlinks/
-**/ios/**/profile
-**/ios/**/xcuserdata
-**/ios/.generated/
-**/ios/Flutter/.last_build_id
-**/ios/Flutter/App.framework
-**/ios/Flutter/Flutter.framework
-**/ios/Flutter/Flutter.podspec
-**/ios/Flutter/Generated.xcconfig
-**/ios/Flutter/ephemeral
-**/ios/Flutter/app.flx
-**/ios/Flutter/app.zip
-**/ios/Flutter/flutter_assets/
-**/ios/Flutter/flutter_export_environment.sh
-**/ios/ServiceDefinitions.json
-**/ios/Runner/GeneratedPluginRegistrant.*
+const route = useRoute();
+const { clientConfig } = useMarkASpotConfig();
+const { locale } = useI18n();
+const { isDemoMode } = useDemoMode();
 
-# macOS
-**/Flutter/ephemeral/
-**/Pods/
-**/macos/Flutter/GeneratedPluginRegistrant.swift
-**/macos/Flutter/ephemeral
-**/xcuserdata/
+const uiLocale = computed(() => ar);
 
-# Windows
-**/windows/flutter/generated_plugin_registrant.cc
-**/windows/flutter/generated_plugin_registrant.h
-**/windows/flutter/generated_plugins.cmake
+useHead({
+  title: computed(() => clientConfig.value?.name || 'بلدية سهل'),
+  htmlAttrs: {
+    lang: computed(() => locale.value || 'ar'),
+    dir: computed(() => resolveLocaleDir(locale.value))
+  },
+  meta: computed(() =>
+    isDemoMode.value
+      ? [{ name: 'robots', content: 'noindex, nofollow' }]
+      : []
+  )
+});
 
-# Linux
-**/linux/flutter/generated_plugin_registrant.cc
-**/linux/flutter/generated_plugin_registrant.h
-**/linux/flutter/generated_plugins.cmake
+const ogLocale = computed(() => {
+  const entry = SUPPORTED_LOCALES.find(
+    l => l.code === locale.value
+  );
+  return (entry?.iso || 'en-US').replace('-', '_');
+});
 
-# Coverage
-coverage/
+const ogLocaleAlternate = computed(() =>
+  SUPPORTED_LOCALES
+    .filter(l => l.code !== locale.value)
+    .map(l => l.iso.replace('-', '_'))
+);
 
-# Symbols
-app.*.symbols
+useServerSeoMeta({
+  ogLocale,
+  ogLocaleAlternate
+});
 
-# Exceptions to above rules.
-!**/ios/**/default.mode1v3
-!**/ios/**/default.mode2v3
-!**/ios/**/default.pbxuser
-!**/ios/**/default.perspectivev3
-!/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
-!/dev/ci/**/Gemfile.lock
+const isDashboard = computed(() =>
+  route.path.includes('/dashboard')
+);
+
+const isAdmin = computed(() =>
+  /(^|\/)admin(\/|$)/.test(route.path)
+);
+
+const isFastmap = computed(() =>
+  route.meta.layout === 'fastmap'
+);
+
+const { isEmbed } = useEmbed();
+
+const toasterConfig = computed(() => ({
+  position: (
+    isDashboard.value ? 'bottom-right' : 'top-right'
+  ) as 'bottom-right' | 'top-right',
+  expand: true,
+  duration: 8000
+}));
+
+useAppBootstrap();
+</script>
